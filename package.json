@@ -1,0 +1,12 @@
+{
+  "name": "vigilux",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:server": "pnpm --filter @vigilux/server dev",
+    "build:server": "pnpm --filter @vigilux/server build",
+    "db:seed": "pnpm --filter @vigilux/server db:seed",
+    "sim:ml": "python apps/ml-engine/src/main.py",
+    "train:ml": "python apps/ml-engine/src/ml/trainer.py"
+  }
+}

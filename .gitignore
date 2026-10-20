@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Python Virtual Env & Cache
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Build Outputs
+dist/
+build/
+.vite/
+
+# Environment Variables (KRUSIAL: Jangan sampai password Neon DB bocor!)
+.env
+.env.local
+.env.*.local
+apps/server/.env
+apps/web/.env
+apps/ml-engine/.env
+
+# Logs & OS
+*.log
+.DS_Store
+Thumbs.db
+.idea/
