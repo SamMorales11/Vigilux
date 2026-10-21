@@ -5,6 +5,8 @@
   "scripts": {
     "dev:server": "pnpm --filter @vigilux/server dev",
     "build:server": "pnpm --filter @vigilux/server build",
+    "dev:web": "pnpm --filter @vigilux/web dev",
+    "build:web": "pnpm --filter @vigilux/web build",
     "db:seed": "pnpm --filter @vigilux/server db:seed",
     "sim:ml": "python apps/ml-engine/src/main.py",
     "train:ml": "python apps/ml-engine/src/ml/trainer.py"
