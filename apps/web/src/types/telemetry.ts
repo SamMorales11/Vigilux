@@ -72,6 +72,9 @@ export interface Incident {
   waste_kw: number;
   estimated_cost_per_hr: number;
   diagnostic_message: string;
+  acknowledged?: boolean;
+  acknowledgedAt?: string;
+  acknowledgedBy?: string;
   // Normalized aliases
   assetId?: string;
   anomalyScore?: number;

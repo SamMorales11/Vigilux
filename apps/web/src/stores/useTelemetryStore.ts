@@ -162,6 +162,14 @@ export const useTelemetryStore = defineStore('telemetry', () => {
     return Number((tele.kw / tele.rpm).toFixed(5));
   });
 
+  const acknowledgedIncidentsCount = computed<number>(() => {
+    return recentIncidents.value.filter((inc) => inc.acknowledged).length;
+  });
+
+  const unacknowledgedIncidentsCount = computed<number>(() => {
+    return recentIncidents.value.filter((inc) => !inc.acknowledged).length;
+  });
+
   // ---------------------------------------------------------------------------
   // Actions
   // ---------------------------------------------------------------------------
@@ -305,20 +313,40 @@ export const useTelemetryStore = defineStore('telemetry', () => {
    * Internal processor for incoming anomaly incident alerts.
    */
   function processIncomingIncident(raw: any): void {
+    const assetId = raw.asset_id || raw.assetId || 'UNKNOWN';
     const incident: Incident = {
-      id: raw.id,
-      asset_id: raw.asset_id || raw.assetId || 'UNKNOWN',
+      id: raw.id || `inc-${assetId}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      asset_id: assetId,
       timestamp: raw.timestamp || new Date().toISOString(),
       anomaly_score: Number(raw.anomaly_score ?? raw.anomalyScore ?? 0),
       waste_kw: Number(raw.waste_kw ?? raw.wasteKw ?? 0),
       estimated_cost_per_hr: Number(raw.estimated_cost_per_hr ?? raw.estimatedCostPerHr ?? 0),
       diagnostic_message: raw.diagnostic_message ?? raw.diagnosticMessage ?? 'High anomaly detected',
+      acknowledged: false,
     };
 
     recentIncidents.value.unshift(incident);
     if (recentIncidents.value.length > 25) {
       recentIncidents.value.pop();
     }
+  }
+
+  /**
+   * Acknowledge an incident by ID.
+   */
+  function acknowledgeIncident(incidentId: string): void {
+    const found = recentIncidents.value.find((inc) => inc.id === incidentId);
+    if (found) {
+      found.acknowledged = true;
+      found.acknowledgedAt = new Date().toISOString();
+    }
+  }
+
+  /**
+   * Clear all acknowledged/resolved incidents from the feed.
+   */
+  function clearAcknowledgedIncidents(): void {
+    recentIncidents.value = recentIncidents.value.filter((inc) => !inc.acknowledged);
   }
 
   // ---------------------------------------------------------------------------
@@ -497,6 +525,8 @@ export const useTelemetryStore = defineStore('telemetry', () => {
     isSimulatingFailure,
     totalDailyWasteCost,
     energyToThroughputRatio,
+    acknowledgedIncidentsCount,
+    unacknowledgedIncidentsCount,
     // Actions
     fetchAssets,
     fetchDemoStatus,
@@ -506,6 +536,8 @@ export const useTelemetryStore = defineStore('telemetry', () => {
     togglePauseStream,
     setStreamPaused,
     selectAsset,
+    acknowledgeIncident,
+    clearAcknowledgedIncidents,
     initWebSocket,
     disconnectWebSocket,
   };

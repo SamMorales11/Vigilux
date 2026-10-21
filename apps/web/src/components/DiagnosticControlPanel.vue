@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   History,
   Activity,
+  Check,
 } from 'lucide-vue-next';
 
 const store = useTelemetryStore();
@@ -169,21 +170,35 @@ function fmtTime(timestamp: string): string {
       </p>
     </div>
 
-    <!-- Live Incident Feed (Industrial Dark Design) -->
+    <!-- Live Incident Feed (Industrial Dark Design with Incident Acknowledgment) -->
     <div class="flex-1 flex flex-col min-h-0 bg-surface-muted/40 border border-surface-border rounded-xl p-3.5 overflow-hidden">
-      <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-surface-border">
+      <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-surface-border whitespace-nowrap">
         <div class="flex items-center gap-2">
           <ShieldAlert class="w-4 h-4 text-crimson-400" />
           <h3 class="text-xs font-bold font-mono tracking-wider text-slate-200 uppercase">
             Live Incident Feed
           </h3>
         </div>
-        <span
-          class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full"
-          :class="store.recentIncidents.length > 0 ? 'bg-crimson-500/20 text-crimson-300 border border-crimson-500/30' : 'bg-slate-800 text-slate-500'"
-        >
-          {{ store.recentIncidents.length }} EVENTS
-        </span>
+
+        <div class="flex items-center gap-2">
+          <!-- Button [ CLEAR RESOLVED ] -->
+          <button
+            v-if="store.acknowledgedIncidentsCount > 0"
+            @click="store.clearAcknowledgedIncidents()"
+            type="button"
+            class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-500 hover:text-white transition-all"
+            title="Clear all acknowledged incidents from feed"
+          >
+            CLEAR RESOLVED ({{ store.acknowledgedIncidentsCount }})
+          </button>
+
+          <span
+            class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full"
+            :class="store.recentIncidents.length > 0 ? 'bg-crimson-500/20 text-crimson-300 border border-crimson-500/30' : 'bg-slate-800 text-slate-500'"
+          >
+            {{ store.recentIncidents.length }} EVENTS
+          </span>
+        </div>
       </div>
 
       <!-- Feed Container -->
@@ -202,11 +217,24 @@ function fmtTime(timestamp: string): string {
         <div
           v-for="(item, idx) in store.recentIncidents"
           :key="item.id || idx"
-          class="bg-deep-slate/80 border border-crimson-500/30 rounded-lg p-2.5 text-xs font-mono space-y-1.5 transition-all hover:border-crimson-500/60"
+          class="rounded-lg p-2.5 text-xs font-mono space-y-1.5 border transition-all"
+          :class="
+            item.acknowledged
+              ? 'bg-slate-900/40 border-slate-700/60 opacity-75 hover:opacity-100'
+              : 'bg-deep-slate/90 border-crimson-500/40 hover:border-crimson-500/70 shadow-[0_0_12px_rgba(244,63,94,0.12)]'
+          "
         >
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-1.5">
-              <span class="px-1.5 py-0.5 rounded bg-crimson-500/20 text-crimson-300 font-extrabold text-[10px] border border-crimson-500/40">
+          <!-- Card Header Row -->
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span
+                class="px-1.5 py-0.5 rounded font-extrabold text-[10px] border"
+                :class="
+                  item.acknowledged
+                    ? 'bg-slate-800 text-slate-400 border-slate-700'
+                    : 'bg-crimson-500/20 text-crimson-300 border-crimson-500/40'
+                "
+              >
                 {{ item.asset_id }}
               </span>
               <span class="text-[10px] text-slate-400 font-mono-tabular">
@@ -214,24 +242,57 @@ function fmtTime(timestamp: string): string {
               </span>
             </div>
 
-            <!-- Anomaly Score Badge -->
-            <span class="text-[10px] font-bold text-crimson-400 font-mono-tabular">
-              SCORE: {{ fmt(item.anomaly_score, 2) }}
-            </span>
+            <!-- Right side: Score & [ ACK ] / ACK TIMESTAMP -->
+            <div class="flex items-center gap-2">
+              <span
+                class="text-[10px] font-bold font-mono-tabular"
+                :class="item.acknowledged ? 'text-slate-400' : 'text-crimson-400'"
+              >
+                SCORE: {{ fmt(item.anomaly_score, 2) }}
+              </span>
+
+              <!-- Interactive [ ACK ] button or Acknowledged Timestamp badge -->
+              <button
+                v-if="!item.acknowledged"
+                @click="store.acknowledgeIncident(item.id || '')"
+                type="button"
+                class="px-2 py-0.5 rounded text-[10px] font-mono font-extrabold bg-crimson-500/20 text-crimson-300 border border-crimson-500/40 hover:bg-crimson-500/40 hover:text-white transition-all shrink-0"
+                title="Acknowledge this incident alert"
+              >
+                ACK
+              </button>
+              <span
+                v-else
+                class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 shrink-0"
+                title="Incident acknowledged by operator"
+              >
+                <Check class="w-2.5 h-2.5 text-emerald-400" />
+                <span>ACK @ {{ fmtTime(item.acknowledgedAt || '') }}</span>
+              </span>
+            </div>
           </div>
 
           <!-- Diagnostic Message -->
-          <p class="text-[11px] text-slate-200 font-sans leading-snug">
+          <p
+            class="text-[11px] font-sans leading-snug"
+            :class="item.acknowledged ? 'text-slate-400' : 'text-slate-200'"
+          >
             {{ item.diagnostic_message }}
           </p>
 
-          <!-- Impact Metrics -->
-          <div class="flex items-center justify-between pt-1 border-t border-slate-800/80 text-[10px] text-slate-400 font-mono-tabular">
-            <span class="text-amber-400 flex items-center gap-1">
+          <!-- Impact Metrics Footer -->
+          <div class="flex items-center justify-between pt-1 border-t border-slate-800/80 text-[10px] font-mono-tabular">
+            <span
+              class="flex items-center gap-1"
+              :class="item.acknowledged ? 'text-slate-400' : 'text-amber-400'"
+            >
               <Zap class="w-3 h-3 text-amber-400" />
               Waste: +{{ fmt(item.waste_kw, 2) }} kW
             </span>
-            <span class="text-crimson-400 flex items-center gap-1 font-bold">
+            <span
+              class="flex items-center gap-1 font-bold"
+              :class="item.acknowledged ? 'text-slate-400' : 'text-crimson-400'"
+            >
               <DollarSign class="w-3 h-3 text-crimson-400" />
               Cost: ${{ fmt(item.estimated_cost_per_hr, 2) }}/hr
             </span>
