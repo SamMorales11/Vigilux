@@ -3,12 +3,20 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "dev": "concurrently -k --names \"SERVER,ML-SIM,WEB-UI\" --prefix-colors \"blue.bold,magenta.bold,cyan.bold\" \"pnpm dev:server\" \"pnpm dev:ml\" \"pnpm dev:web\"",
     "dev:server": "pnpm --filter @vigilux/server dev",
-    "build:server": "pnpm --filter @vigilux/server build",
+    "dev:ml": "python -u apps/ml-engine/src/main.py",
     "dev:web": "pnpm --filter @vigilux/web dev",
+    "build": "pnpm --filter @vigilux/server build && pnpm --filter @vigilux/web build",
+    "build:server": "pnpm --filter @vigilux/server build",
     "build:web": "pnpm --filter @vigilux/web build",
+    "db:push": "pnpm --filter @vigilux/server db:push",
     "db:seed": "pnpm --filter @vigilux/server db:seed",
-    "sim:ml": "python apps/ml-engine/src/main.py",
-    "train:ml": "python apps/ml-engine/src/ml/trainer.py"
+    "ml:train": "python apps/ml-engine/src/ml/trainer.py",
+    "sim:ml": "pnpm dev:ml",
+    "train:ml": "pnpm ml:train"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.6"
   }
 }
