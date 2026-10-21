@@ -17,6 +17,7 @@
     "train:ml": "pnpm ml:train"
   },
   "devDependencies": {
-    "concurrently": "^10.0.6"
+    "concurrently": "^10.0.6",
+    "puppeteer-core": "^25.14.0"
   }
 }

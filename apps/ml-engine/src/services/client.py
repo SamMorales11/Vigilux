@@ -43,6 +43,18 @@ class TelemetryClient:
         payload = [r.to_backend_payload() for r in readings]
         return self._send_json(payload)
 
+    def fetch_demo_status(self) -> dict | None:
+        """Fetch failure scenario and threshold status from backend."""
+        try:
+            demo_url = self.target_url.replace("/telemetry", "/demo/status")
+            res = self.session.get(demo_url, timeout=1.0)
+            if res.status_code == 200:
+                data = res.json()
+                return data.get("config", {})
+        except Exception:
+            pass
+        return None
+
     def _send_json(self, json_data: Union[dict[str, Any], list[dict[str, Any]]]) -> bool:
         """
         Execute POST request with robust try-except error handling and anti-crash protection.

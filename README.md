@@ -31,6 +31,42 @@ When industrial bearings undergo progressive mechanical degradation (inner race 
 
 ---
 
+
+---
+
+## 📸 Visual Showcase & Command Center Anatomy
+
+The Vigilux industrial interface is engineered according to high-density, mission-critical SCADA/DCS design principles—featuring **Zero Layout Shift (tabular-nums)**, high-contrast dark palette (`#090D16` Deep Slate), and synchronized dual-canvas time-series analytics.
+
+### 1. Nominal Steady-State Operation (Fleet Health 100%)
+![Vigilux Command Center - Nominal Operation](./docs/screenshots/01-normal-command-center.png)
+
+#### Technical Breakdown:
+- **Left Zone (Fleet Health Monitor)**: All 5 machines (`MOTOR-01` through `COMP-01`) report nominal vibration levels ($< 2.0\text{ mm/s}$) and baseline power consumption. Anomaly scores remain safely below $0.15$.
+- **Center Canvas (Dual Synchronized Time-Series)**:
+  - *Top Grid*: The **Actual Power (kW)** curve (solid Cyan) aligns symmetrically with the **LightGBM Predicted Baseline** (dashed grey curve). The Energy Waste Gap is negligible ($0.0\text{--}0.2\text{ kW}$).
+  - *Bottom Grid*: Mechanical vibration RMS ($1.8\text{ mm/s}$, Crimson) and bearing temperatures ($45\text{--}48^\circ\text{C}$, Amber) operate stably beneath the ISO 10816-3 Class II allowable limit ($4.5\text{ mm/s}$).
+  - *MarkLine Indicator*: The horizontal red dashed line marks the real-time threshold ($0.80$).
+- **Right Zone (Diagnostic & Incident Feed)**: Mean Time Between Failures (MTBF) projects healthy longevity ($> 1,400\text{ hrs}$). The incident feed confirms `NO ACTIVE INCIDENTS`.
+- **Industrial Terminal Footer**: Displays persistent pipeline health (`DB: NEON POSTGRES [BRIN-IDX]`, `ML ENGINE: ISOLATION FOREST + LIGHTGBM`), spacebar pause shortcut, instant CSV export, and synchronized UTC/WITA clocks.
+
+---
+
+### 2. Injected Bearing Wear & Critical Energy Gap Anomaly
+![Vigilux Command Center - Critical Anomaly State](./docs/screenshots/02-critical-anomaly-simulation.png)
+
+#### Technical Breakdown:
+- **Autonomous Fleet Re-ordering**:
+  - `MOTOR-03` has suffered severe mechanical bearing degradation.
+  - Its composite anomaly score surges to **$0.85+$**, causing the asset card to smoothly glide to the **very top of the fleet list** with an animated crimson pulsing border (`animate-pulse`).
+- **Synchronized Visual Confirmation**:
+  - *Energy Waste Gap Area*: Active electrical draw leaps to **$19.5\text{ kW}$** (+34% above nominal). The LightGBM predicted baseline remains fixed at **$14.5\text{ kW}$**, producing a dramatic crimson-shaded **Energy Waste Gap ($+5.0\text{ kW}$)**.
+  - *Thermal & Resonance Ramp*: Mechanical vibration leaps from $1.8\text{ mm/s}$ past the **ISO 4.5 mm/s alarm threshold** up to **$6.8\text{ mm/s}$**, accompanied by a $+18^\circ\text{C}$ bearing friction spike.
+- **Actionable Incident Feed & Financial Telemetry**:
+  - The Live Incident Feed logs: `"High Friction Warning: MOTOR-03 drawing excess kW due to bearing vibration spike"`.
+  - Financial impact metrics immediately project the operating penalty: **Waste $+4.93\text{ kW}$** incurring an extra **$\$0.74\text{ / hr}$** in avoidable energy costs.
+  - Operators can click **`[ ACK ]`** to record receipt of the alarm, subduing the card border to steady slate.
+
 ## 2. End-to-End System Architecture
 
 Vigilux is architected as an industrial-grade monorepo employing **Clean Architecture** across data ingestion, machine learning inference, message routing, and reactive visualization.

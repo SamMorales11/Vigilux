@@ -83,6 +83,18 @@ class TelemetrySimulatorApp:
                 start_time = time.monotonic()
                 self.cycle_count += 1
 
+                # Sync dynamic failure scenario state from backend every 2 cycles
+                if not dry_run and self.cycle_count % 2 == 0:
+                    backend_cfg = self.client.fetch_demo_status()
+                    if backend_cfg:
+                        remote_enabled = backend_cfg.get("enabled", False)
+                        if remote_enabled != self.generator.failure_state._is_active:
+                            self.generator.failure_state.set_enabled(remote_enabled)
+                            if not remote_enabled:
+                                self.generator.failure_state.reset()
+                            else:
+                                logger.info("Remote failure simulation activated for MOTOR-03")
+
                 # 1. Generate realistic physical sensor telemetry for all 5 industrial assets
                 readings = self.generator.generate_cycle(advance_failure_step=True)
 
