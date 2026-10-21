@@ -6,6 +6,7 @@ import FleetStatusPanel from '@/components/FleetStatusPanel.vue';
 import DualTimeSeriesChart from '@/components/DualTimeSeriesChart.vue';
 import DiagnosticControlPanel from '@/components/DiagnosticControlPanel.vue';
 import EmergencyToast from '@/components/EmergencyToast.vue';
+import StatusFooter from '@/components/StatusFooter.vue';
 import AssetStatusBadge from '@/components/AssetStatusBadge.vue';
 import {
   Zap,
@@ -136,5 +137,8 @@ function fmt(val: number | undefined | null, decimals = 1, fallback = '---'): st
         <DiagnosticControlPanel />
       </section>
     </main>
+
+    <!-- Quantitative & Industrial Terminal Status Footer (h-7 / 28px) -->
+    <StatusFooter />
   </div>
 </template>
