@@ -169,6 +169,7 @@ export const useTelemetryStore = defineStore('telemetry', () => {
   const isConnecting = ref<boolean>(false);
   const pingMs = ref<number | null>(null);
   const lastHeartbeat = ref<string | null>(null);
+  const transportMode = ref<'websocket' | 'serverless-stream'>('websocket');
 
   // Inspection & Live Control
   const isStreamPaused = ref<boolean>(false);
@@ -531,8 +532,92 @@ export const useTelemetryStore = defineStore('telemetry', () => {
   }
 
   // ---------------------------------------------------------------------------
-  // WebSocket Manager (ws://localhost:3000/ws/telemetry/live)
+  // Smart Transport Adapter (WebSocket & High-Precision 1 Hz Serverless Stream)
   // ---------------------------------------------------------------------------
+
+  function isServerlessEnvironment(): boolean {
+    if (typeof window === 'undefined') return false;
+    const hostname = window.location.hostname;
+    return (
+      hostname.includes('vercel.app') ||
+      hostname.includes('.now.sh') ||
+      hostname.includes('vercel') ||
+      (import.meta as any).env?.VITE_TRANSPORT === 'serverless'
+    );
+  }
+
+  let serverlessStreamTimer: ReturnType<typeof setInterval> | null = null;
+  let isTickInProgress = false;
+
+  /**
+   * High-precision 1 Hz client-driven stream for Vercel Serverless / WebSocket fallback.
+   * Measures RTT latency (ms) and dispatches telemetry to all 5 assets and incidents.
+   */
+  async function executeServerlessTick(): Promise<void> {
+    if (isTickInProgress) return;
+    isTickInProgress = true;
+
+    const t0 = performance.now();
+    try {
+      const res = await fetch('/api/v1/telemetry/tick', {
+        headers: { Accept: 'application/json' },
+      });
+
+      const rttMs = Math.max(1, Math.round(performance.now() - t0));
+      pingMs.value = rttMs;
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          isConnected.value = true;
+          isConnecting.value = false;
+          lastHeartbeat.value = new Date().toISOString();
+
+          // Sync failure simulation status if returned
+          if (json.simulation && typeof json.simulation.enabled === 'boolean') {
+            simulationConfig.value.enabled = json.simulation.enabled;
+          }
+
+          // 1. Process 5 asset readings
+          for (const item of json.data) {
+            processIncomingTelemetry(item);
+          }
+
+          // 2. Process any new incident alerts
+          if (Array.isArray(json.incidents)) {
+            for (const inc of json.incidents) {
+              processIncomingIncident(inc);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[TelemetryStore] Serverless tick notice:', err);
+    } finally {
+      isTickInProgress = false;
+    }
+  }
+
+  function startServerlessStream(): void {
+    if (serverlessStreamTimer) return;
+    transportMode.value = 'serverless-stream';
+    console.log('[TelemetryStore] Smart Transport Adapter: Activating 1 Hz Serverless Stream');
+
+    // Immediate first tick
+    void executeServerlessTick();
+
+    // High-precision 1000ms recurring interval
+    serverlessStreamTimer = setInterval(() => {
+      void executeServerlessTick();
+    }, 1000);
+  }
+
+  function stopServerlessStream(): void {
+    if (serverlessStreamTimer) {
+      clearInterval(serverlessStreamTimer);
+      serverlessStreamTimer = null;
+    }
+  }
 
   function resolveWsUrl(): string {
     if (typeof window !== 'undefined') {
@@ -548,8 +633,14 @@ export const useTelemetryStore = defineStore('telemetry', () => {
 
   /**
    * Connect to real-time WebSocket server with latency ping measurement and auto-reconnect.
+   * Seamlessly switches to 1 Hz Serverless Stream on Vercel or if WebSocket is unavailable.
    */
   function initWebSocket(): void {
+    if (isServerlessEnvironment()) {
+      startServerlessStream();
+      return;
+    }
+
     if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
       return;
     }
@@ -557,10 +648,20 @@ export const useTelemetryStore = defineStore('telemetry', () => {
     const wsUrl = resolveWsUrl();
     isConnecting.value = true;
 
+    // Timeout: if WebSocket does not connect within 2 seconds, activate Serverless Stream
+    const wsFallbackTimer = setTimeout(() => {
+      if (!isConnected.value && transportMode.value !== 'serverless-stream') {
+        startServerlessStream();
+      }
+    }, 2000);
+
     try {
       socket = new WebSocket(wsUrl);
 
       socket.onopen = () => {
+        clearTimeout(wsFallbackTimer);
+        stopServerlessStream();
+        transportMode.value = 'websocket';
         isConnected.value = true;
         isConnecting.value = false;
         reconnectAttempts = 0;
@@ -610,17 +711,20 @@ export const useTelemetryStore = defineStore('telemetry', () => {
 
       socket.onclose = () => {
         cleanupPingHeartbeat();
-        isConnected.value = false;
-        isConnecting.value = false;
+        clearTimeout(wsFallbackTimer);
+        // Switch to Serverless Stream immediately so UI never stops flowing
+        startServerlessStream();
         scheduleReconnect();
       };
 
       socket.onerror = (err) => {
-        console.warn('[TelemetryStore] WebSocket encountered error:', err);
-        isConnected.value = false;
+        console.warn('[TelemetryStore] WebSocket encountered error, switching to Serverless Stream:', err);
+        clearTimeout(wsFallbackTimer);
+        startServerlessStream();
       };
     } catch (err) {
-      isConnecting.value = false;
+      clearTimeout(wsFallbackTimer);
+      startServerlessStream();
       scheduleReconnect();
     }
   }
@@ -668,6 +772,7 @@ export const useTelemetryStore = defineStore('telemetry', () => {
 
   function disconnectWebSocket(): void {
     cleanupPingHeartbeat();
+    stopServerlessStream();
     if (reconnectTimer) {
       clearTimeout(reconnectTimer);
       reconnectTimer = null;
@@ -691,6 +796,7 @@ export const useTelemetryStore = defineStore('telemetry', () => {
     isConnecting,
     pingMs,
     lastHeartbeat,
+    transportMode,
     isStreamPaused,
     alarmThreshold,
     simulationConfig,
@@ -721,5 +827,7 @@ export const useTelemetryStore = defineStore('telemetry', () => {
     clearAcknowledgedIncidents,
     initWebSocket,
     disconnectWebSocket,
+    startServerlessStream,
+    stopServerlessStream,
   };
 });

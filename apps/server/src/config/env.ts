@@ -17,7 +17,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
   HOST: z.string().default('0.0.0.0'),
   CORS_ORIGIN: z.string().default('*'),
-  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  DATABASE_URL: z.string().default('postgres://postgres:postgres@localhost:5432/vigilux'),
   DATABASE_MAX_CONNECTIONS: z.coerce.number().default(10),
 });
 

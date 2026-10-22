@@ -13,8 +13,10 @@ import type { FastifyInstance } from 'fastify';
 import { telemetryController } from './telemetry.controller.js';
 
 export async function telemetryRoutes(app: FastifyInstance): Promise<void> {
-  // 1. Ingestion Endpoint
+  // 1. Ingestion & Serverless Telemetry Tick Endpoints
   app.post('/api/v1/telemetry', telemetryController.ingestTelemetry.bind(telemetryController));
+  app.get('/api/v1/telemetry/tick', telemetryController.tick.bind(telemetryController));
+  app.post('/api/v1/telemetry/tick', telemetryController.tick.bind(telemetryController));
 
   // 2. Asset Registry & Performance Metrics
   app.get('/api/v1/assets', telemetryController.getAssets.bind(telemetryController));

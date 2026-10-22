@@ -15,7 +15,7 @@ import { telemetryRoutes } from './modules/telemetry/telemetry.routes.js';
 import { telemetryService } from './modules/telemetry/telemetry.service.js';
 import { checkDatabaseConnection } from './db/index.js';
 
-export async function buildApp(): Promise<FastifyInstance> {
+export async function buildApp(options: { isServerless?: boolean } = {}): Promise<FastifyInstance> {
   const app = Fastify({
     logger: {
       level: env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -37,17 +37,19 @@ export async function buildApp(): Promise<FastifyInstance> {
     credentials: true,
   });
 
-  // 2. Configure WebSocket Engine
-  await app.register(websocket, {
-    options: {
-      maxPayload: 1024 * 1024, // 1MB limit for packets
-    },
-  });
+  // 2. Configure WebSocket Engine (only in persistent/local runtime, skip in serverless)
+  if (!options.isServerless) {
+    await app.register(websocket, {
+      options: {
+        maxPayload: 1024 * 1024, // 1MB limit for packets
+      },
+    });
 
-  // 3. Register WebSocket Route: WS /ws/telemetry/live
-  app.get('/ws/telemetry/live', { websocket: true }, (socket, req) => {
-    wsHub.handleConnection(socket, req);
-  });
+    // 3. Register WebSocket Route: WS /ws/telemetry/live
+    app.get('/ws/telemetry/live', { websocket: true }, (socket, req) => {
+      wsHub.handleConnection(socket, req);
+    });
+  }
 
   // 4. Global Error Handler
   app.setErrorHandler((error: FastifyError | Error | unknown, request, reply) => {
@@ -109,28 +111,35 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(telemetryRoutes);
 
   // 7. Base Diagnostic & Health Routes
-  app.get('/', async () => {
-    return {
-      service: 'Vigilux Industrial IoT Server',
-      status: 'online',
-      environment: env.NODE_ENV,
-      version: '1.0.0',
-      timestamp: new Date().toISOString(),
-    };
+  const getRootInfo = async () => ({
+    service: 'Vigilux Industrial IoT Server',
+    status: 'online',
+    environment: env.NODE_ENV,
+    runtime: options.isServerless ? 'Vercel Serverless Function' : 'Node.js Daemon',
+    architecture: 'Hybrid Serverless & WebSocket',
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
   });
 
-  app.get('/health', async () => {
+  app.get('/', getRootInfo);
+  app.get('/api', getRootInfo);
+
+  const getHealthInfo = async () => {
     const isDbConnected = await checkDatabaseConnection();
     return {
       status: isDbConnected ? 'ok' : 'degraded',
       uptimeSeconds: Math.floor(process.uptime()),
       timestamp: new Date().toISOString(),
-      database: isDbConnected ? 'connected' : 'disconnected',
+      database: isDbConnected ? 'connected' : 'disconnected (in-memory mode)',
       websocketClients: wsHub.clientCount,
       bufferedTelemetryQueue: telemetryService.queuedCount,
       cachedAssetsCount: telemetryService.getAllLatestMetrics().length,
+      mode: options.isServerless ? 'serverless' : 'persistent',
     };
-  });
+  };
+
+  app.get('/health', getHealthInfo);
+  app.get('/api/health', getHealthInfo);
 
   return app;
 }

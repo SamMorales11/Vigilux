@@ -21,6 +21,7 @@ import {
   type NewSensorTelemetry,
 } from '../../db/index.js';
 import { wsHub as defaultWsHub, TelemetryWebSocketHub } from './ws-hub.js';
+import { MACHINE_PROFILES } from './machine-profiles.js';
 
 export interface RawTelemetryInput {
   asset_id?: string;
@@ -167,6 +168,7 @@ export class TelemetryService {
 
   // Demo simulation state configuration
   private simulationConfig: DemoSimulationConfig;
+  private readonly inMemoryIncidents: any[] = [];
 
   constructor(options: TelemetryServiceOptions = {}) {
     this.db = options.db ?? defaultDb;
@@ -180,9 +182,9 @@ export class TelemetryService {
     this.electricityCostPerKwh = options.electricityCostPerKwh ?? 0.15;
 
     this.simulationConfig = {
-      enabled: true,
+      enabled: false,
       target_asset: 'MOTOR-03',
-      progression_steps: 60,
+      progression_steps: 25,
       anomaly_threshold: this.anomalyThreshold,
       warning_threshold: this.warningThreshold,
       cooldown_period_seconds: Math.floor(this.cooldownPeriodMs / 1000),
@@ -338,6 +340,21 @@ export class TelemetryService {
       // Construct intelligent diagnostic message
       const diagnosticMessage = this.generateDiagnosticMessage(data, wasteKw);
 
+      const inMemoryIncident = {
+        id: `inc-${assetId}-${now}`,
+        asset_id: assetId,
+        timestamp: new Date(data.timestamp).toISOString(),
+        anomaly_score: score,
+        waste_kw: wasteKw,
+        estimated_cost_per_hr: estimatedCostPerHr,
+        diagnostic_message: diagnosticMessage,
+        acknowledged: false,
+      };
+      this.inMemoryIncidents.unshift(inMemoryIncident);
+      if (this.inMemoryIncidents.length > 50) {
+        this.inMemoryIncidents.pop();
+      }
+
       try {
         const [incident] = await this.db
           .insert(anomalyIncidents)
@@ -354,12 +371,15 @@ export class TelemetryService {
         // 4. Immediately broadcast incident notification to frontend clients
         if (incident) {
           this.wsHub.broadcastIncident(incident);
+        } else {
+          this.wsHub.broadcastIncident(inMemoryIncident);
         }
 
         return true;
       } catch (err) {
-        console.error(`❌ Failed to record anomaly incident for ${assetId}:`, err);
-        return false;
+        console.warn(`⚠️ Failed to record anomaly incident in DB for ${assetId} (using in-memory):`, err);
+        this.wsHub.broadcastIncident(inMemoryIncident);
+        return true;
       }
     } else if (score >= this.warningThreshold) {
       // Moderate anomaly: update status to 'warning'
@@ -455,7 +475,33 @@ export class TelemetryService {
    * Retrieve list of all registered assets enriched with live/cached metrics.
    */
   public async getAllAssets(): Promise<AssetOverview[]> {
-    const assets = await this.db.select().from(assetRegistry);
+    let assets: Array<{
+      id: string;
+      name: string;
+      type: string;
+      ratedKw: number;
+      isoVibrationLimit: number;
+      status: string;
+      updatedAt: Date;
+    }> = [];
+
+    try {
+      assets = await this.db.select().from(assetRegistry);
+    } catch (err) {
+      console.warn('⚠️ [TelemetryService] DB lookup failed, using MACHINE_PROFILES fallback:', err);
+    }
+
+    if (!assets || assets.length === 0) {
+      assets = MACHINE_PROFILES.map((p) => ({
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        ratedKw: p.ratedKw,
+        isoVibrationLimit: p.isoVibrationLimit,
+        status: 'operational',
+        updatedAt: new Date(),
+      }));
+    }
 
     return assets.map((asset) => {
       const live = this.latestMetricsCache.get(asset.id);
@@ -481,7 +527,7 @@ export class TelemetryService {
         wasteGapKw: live?.wasteGapKw ?? null,
         wastePct: live?.wastePct ?? null,
         anomalyScore,
-        lastUpdated: live?.timestamp ?? asset.updatedAt.toISOString(),
+        lastUpdated: live?.timestamp ?? (asset.updatedAt instanceof Date ? asset.updatedAt.toISOString() : new Date().toISOString()),
       };
     });
   }
@@ -491,23 +537,60 @@ export class TelemetryService {
    * MTBF, shift kWh consumption, accumulated Energy Waste Gap, recent incidents, health score.
    */
   public async getAssetMetricsSummary(assetId: string): Promise<AssetMetricsSummary> {
-    const [asset] = await this.db
-      .select()
-      .from(assetRegistry)
-      .where(eq(assetRegistry.id, assetId))
-      .limit(1);
+    let asset: any = null;
+    let dbIncidents: any[] = [];
+
+    try {
+      const [dbAsset] = await this.db
+        .select()
+        .from(assetRegistry)
+        .where(eq(assetRegistry.id, assetId))
+        .limit(1);
+      asset = dbAsset;
+
+      dbIncidents = await this.db
+        .select()
+        .from(anomalyIncidents)
+        .where(eq(anomalyIncidents.assetId, assetId))
+        .orderBy(desc(anomalyIncidents.timestamp))
+        .limit(10);
+    } catch (err) {
+      console.warn(`⚠️ [TelemetryService] DB lookup failed for ${assetId}:`, err);
+    }
 
     if (!asset) {
-      throw new Error(`Asset '${assetId}' not found in registry`);
+      const fallback = MACHINE_PROFILES.find((p) => p.id === assetId) ?? MACHINE_PROFILES[2]!;
+      asset = {
+        id: fallback.id,
+        name: fallback.name,
+        type: fallback.type,
+        ratedKw: fallback.ratedKw,
+        isoVibrationLimit: fallback.isoVibrationLimit,
+        status: 'operational',
+      };
     }
 
     // 1. Fetch recent incidents
-    const incidents = await this.db
-      .select()
-      .from(anomalyIncidents)
-      .where(eq(anomalyIncidents.assetId, assetId))
-      .orderBy(desc(anomalyIncidents.timestamp))
-      .limit(10);
+    const incidents = dbIncidents.length > 0
+      ? dbIncidents.map((inc) => ({
+          id: inc.id,
+          timestamp: inc.timestamp instanceof Date ? inc.timestamp.toISOString() : String(inc.timestamp),
+          anomalyScore: inc.anomalyScore,
+          wasteKw: inc.wasteKw,
+          estimatedCostPerHr: inc.estimatedCostPerHr,
+          diagnosticMessage: inc.diagnosticMessage,
+        }))
+      : this.inMemoryIncidents
+          .filter((inc) => inc.asset_id === assetId)
+          .slice(0, 10)
+          .map((inc) => ({
+            id: inc.id,
+            timestamp: inc.timestamp,
+            anomalyScore: inc.anomaly_score,
+            wasteKw: inc.waste_kw,
+            estimatedCostPerHr: inc.estimated_cost_per_hr,
+            diagnosticMessage: inc.diagnostic_message,
+          }));
 
     // 2. Resolve latest telemetry
     const cached = this.latestMetricsCache.get(assetId);
@@ -587,13 +670,20 @@ export class TelemetryService {
       latestTelemetry: latest,
       recentIncidents: incidents.map((inc) => ({
         id: inc.id,
-        timestamp: inc.timestamp.toISOString(),
+        timestamp: inc.timestamp instanceof Date ? inc.timestamp.toISOString() : String(inc.timestamp),
         anomalyScore: inc.anomalyScore,
         wasteKw: inc.wasteKw,
         estimatedCostPerHr: inc.estimatedCostPerHr,
         diagnosticMessage: inc.diagnosticMessage,
       })),
     };
+  }
+
+  /**
+   * Get recent incident alerts (in-memory ring buffer).
+   */
+  public getRecentIncidents(limit = 20): any[] {
+    return this.inMemoryIncidents.slice(0, limit);
   }
 
   /**

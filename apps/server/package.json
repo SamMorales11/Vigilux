@@ -3,6 +3,11 @@
   "version": "1.0.0",
   "description": "Vigilux Server Application",
   "main": "dist/server.js",
+  "exports": {
+    ".": "./dist/server.js",
+    "./app": "./dist/app.js",
+    "./app.js": "./dist/app.js"
+  },
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",

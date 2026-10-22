@@ -9,9 +9,9 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import {
   telemetryIngestSchema,
   assetIdParamSchema,
-  simulateFailureSchema,
 } from './telemetry.schema.js';
 import { telemetryService } from './telemetry.service.js';
+import { telemetryEngine } from './telemetry-engine.service.js';
 
 export class TelemetryController {
   /**
@@ -73,17 +73,49 @@ export class TelemetryController {
   }
 
   /**
+   * GET/POST /api/v1/telemetry/tick
+   * High-precision 1 Hz serverless telemetry tick & real-time ML inference.
+   */
+  public async tick(_request: FastifyRequest, reply: FastifyReply): Promise<void> {
+    const result = await telemetryEngine.generateTick();
+    return reply.status(200).send(result);
+  }
+
+  /**
    * POST /api/v1/demo/simulate-failure
    * Toggle bearing wear degradation on target asset and configure alarm sensitivity.
    */
   public async simulateFailure(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-    const validated = simulateFailureSchema.parse(request.body);
-    const config = telemetryService.setSimulationConfig(validated);
+    const body = (request.body as Record<string, any>) || {};
+    const enabled = typeof body.enabled === 'boolean'
+      ? body.enabled
+      : typeof body.simulate_failure === 'boolean'
+        ? body.simulate_failure
+        : true;
+    const targetAsset = body.target_asset || 'MOTOR-03';
+    const threshold = typeof body.anomaly_threshold === 'number'
+      ? body.anomaly_threshold
+      : typeof body.threshold === 'number'
+        ? body.threshold
+        : 0.8;
+
+    const config = telemetryService.setSimulationConfig({
+      enabled,
+      target_asset: targetAsset,
+      anomaly_threshold: threshold,
+    });
+
+    telemetryEngine.setSimulationConfig({
+      enabled,
+      target_asset: targetAsset,
+      threshold,
+    });
 
     return reply.status(200).send({
       success: true,
       message: `Failure simulation scenario ${config.enabled ? 'activated' : 'deactivated'} for target [${config.target_asset}]`,
       config,
+      simulation: telemetryEngine.getSimulationState(),
       timestamp: new Date().toISOString(),
     });
   }
@@ -94,10 +126,12 @@ export class TelemetryController {
    */
   public async getDemoStatus(_request: FastifyRequest, reply: FastifyReply): Promise<void> {
     const config = telemetryService.getSimulationConfig();
+    const simulation = telemetryEngine.getSimulationState();
 
     return reply.status(200).send({
       success: true,
       config,
+      simulation,
       timestamp: new Date().toISOString(),
     });
   }
