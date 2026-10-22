@@ -79,7 +79,7 @@ function fmt(val: number | undefined | null, decimals = 1, fallback = '---'): st
                 <Zap class="w-2.5 h-2.5 text-cyan-400" /> POWER
               </span>
               <span class="text-xs font-bold text-cyan-300 font-mono-tabular">
-                {{ fmt(currentTele?.kw, 1) }} <span class="text-[9px] font-normal text-slate-400">kW</span>
+                {{ fmt(currentTele?.kw ?? currentAsset.currentKwValue, 1) }} <span class="text-[9px] font-normal text-slate-400">kW</span>
               </span>
             </div>
 
@@ -90,9 +90,9 @@ function fmt(val: number | undefined | null, decimals = 1, fallback = '---'): st
               </span>
               <span
                 class="text-xs font-bold font-mono-tabular"
-                :class="(currentTele?.vib_rms ?? 0) > currentAsset.iso_vibration_limit ? 'text-crimson-400' : 'text-slate-200'"
+                :class="(currentTele?.vib_rms ?? currentAsset.currentVibRmsValue) > currentAsset.iso_vibration_limit ? 'text-crimson-400' : 'text-slate-200'"
               >
-                {{ fmt(currentTele?.vib_rms, 2) }} <span class="text-[9px] font-normal text-slate-400">mm/s</span>
+                {{ fmt(currentTele?.vib_rms ?? currentAsset.currentVibRmsValue, 2) }} <span class="text-[9px] font-normal text-slate-400">mm/s</span>
               </span>
             </div>
 
@@ -103,9 +103,9 @@ function fmt(val: number | undefined | null, decimals = 1, fallback = '---'): st
               </span>
               <span
                 class="text-xs font-bold font-mono-tabular"
-                :class="(currentTele?.temp_c ?? 0) > 75 ? 'text-amber-400' : 'text-slate-200'"
+                :class="(currentTele?.temp_c ?? currentAsset.currentTempValue) > 75 ? 'text-amber-400' : 'text-slate-200'"
               >
-                {{ fmt(currentTele?.temp_c, 1) }} <span class="text-[9px] font-normal text-slate-400">°C</span>
+                {{ fmt(currentTele?.temp_c ?? currentAsset.currentTempValue, 1) }} <span class="text-[9px] font-normal text-slate-400">°C</span>
               </span>
             </div>
 
@@ -120,7 +120,7 @@ function fmt(val: number | undefined | null, decimals = 1, fallback = '---'): st
                   'text-crimson-400': currentAsset.dynamicStatus === 'critical',
                 }"
               >
-                {{ fmt(currentTele?.anomaly_score, 2, '0.00') }}
+                {{ fmt(currentTele?.anomaly_score ?? currentAsset.currentScore, 2, '0.00') }}
               </span>
             </div>
           </div>

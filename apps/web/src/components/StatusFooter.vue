@@ -186,10 +186,17 @@ function exportCsv() {
 
       <span class="text-slate-700">|</span>
 
-      <!-- Build Version Identity -->
-      <span class="text-slate-500 font-semibold tracking-wider">
-        VIGILUX CORE v1.0.0-PROD
-      </span>
+      <!-- Build Version Identity with Mini Logo Badge -->
+      <div class="flex items-center gap-1.5">
+        <img
+          src="/logo-icon.jpg"
+          alt="Vigilux Icon"
+          class="w-3.5 h-3.5 rounded object-cover border border-cyan-500/30 inline-block shrink-0"
+        />
+        <span class="text-slate-500 font-semibold tracking-wider">
+          VIGILUX CORE v1.0.0-PROD
+        </span>
+      </div>
     </div>
   </footer>
 </template>

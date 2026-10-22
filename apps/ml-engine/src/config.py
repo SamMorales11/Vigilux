@@ -28,9 +28,9 @@ class AssetBaseProfile:
 @dataclass
 class FailureScenarioConfig:
     """Configuration for mechanical bearing degradation failure injection."""
-    enabled: bool = os.getenv("SIMULATE_FAILURE", "true").lower() in ("true", "1", "yes")
+    enabled: bool = os.getenv("SIMULATE_FAILURE", "false").lower() in ("true", "1", "yes")
     target_asset_id: str = os.getenv("FAILURE_TARGET_ASSET", "MOTOR-03")
-    total_steps: int = int(os.getenv("FAILURE_PROGRESSION_STEPS", "60"))
+    total_steps: int = int(os.getenv("FAILURE_PROGRESSION_STEPS", "25"))
     
     # Degradation parameters for MOTOR-03
     vib_start_rms: float = 1.8
@@ -86,7 +86,7 @@ class AppConfig:
             base_temp_c=66.0,
             base_vib_rms=1.8,  # Starts at 1.8 mm/s before bearing degradation
             base_pressure=0.0,
-            iso_vibration_limit=7.1,
+            iso_vibration_limit=4.5,
         ),
         "PUMP-01": AssetBaseProfile(
             asset_id="PUMP-01",

@@ -115,9 +115,9 @@ const chartOption = computed(() => {
       itemHeight: 4,
     },
     grid: [
-      // Top Grid: Power & Waste Gap (Generous left & right margins, clearance below legend)
+      // Top Grid: Power & Waste Gap (Clearance below legend)
       {
-        left: 56,
+        left: '52px',
         right: 48,
         top: 36,
         height: '35%',
@@ -125,7 +125,7 @@ const chartOption = computed(() => {
       },
       // Bottom Grid: Vibration, Temp & Anomaly Score
       {
-        left: 56,
+        left: '52px',
         right: 48,
         top: '57%',
         height: '35%',
@@ -187,7 +187,7 @@ const chartOption = computed(() => {
         type: 'value',
         gridIndex: 1,
         name: 'Vib / Temp',
-        nameTextStyle: { color: '#64748B', fontSize: 10, align: 'right', padding: [0, 8, 4, 0] },
+        nameTextStyle: { color: '#64748B', fontSize: 10, align: 'left', padding: [0, 0, 4, -40] },
         scale: true,
         splitLine: {
           lineStyle: { color: 'rgba(30, 41, 59, 0.6)', type: 'dashed' },

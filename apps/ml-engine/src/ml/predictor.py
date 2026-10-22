@@ -188,13 +188,21 @@ class RealTimePredictor:
             return []
 
         # 1. Prepare Regressor input matrix (predicted_kw)
+        # Use nominal operating parameters (base_rpm, base_pressure, base_temp_c)
+        # so that the baseline power prediction represents true healthy operational baseline,
+        # completely unaffected by friction-induced thermal spikes or bearing wear.
         reg_rows: list[dict[str, Any]] = []
-        for r, feat in zip(readings, features):
+        for r in readings:
+            profile = self.config.asset_profiles.get(r.asset_id)
+            nom_temp = profile.base_temp_c if profile else 55.0
+            nom_rpm = profile.base_rpm if profile else r.rpm
+            nom_pressure = profile.base_pressure if profile else r.pressure
+
             reg_rows.append({
-                "rpm": r.rpm,
-                "pressure": r.pressure,
-                "temp_c": r.temp_c,
-                "temp_rolling_mean": feat.temp_rolling_mean,
+                "rpm": nom_rpm,
+                "pressure": nom_pressure,
+                "temp_c": nom_temp,
+                "temp_rolling_mean": nom_temp,
                 "rated_kw": self.asset_rated_kw_map.get(r.asset_id, 75.0),
                 "asset_code": self.asset_code_map.get(r.asset_id, 0),
             })
@@ -253,13 +261,15 @@ class RealTimePredictor:
             base_vib = profile.base_vib_rms if profile else 1.8
 
             # Vibration wear severity relative to ISO limits
-            vib_severity = max(0.0, min(1.0, (float(r.vib_rms) - base_vib) / max(0.5, (iso_limit * 1.05 - base_vib))))
+            vib_severity = max(0.0, min(1.0, (float(r.vib_rms) - base_vib) / max(0.5, (iso_limit - base_vib))))
 
-            # Energy waste severity
-            waste_severity = max(0.0, min(1.0, waste_pct / 30.0))
+            # Energy waste severity relative to expected maximum surge (+28-34%)
+            waste_severity = max(0.0, min(1.0, waste_pct / 28.0))
 
             # Multi-signal fused anomaly score [0.00, 1.00]
-            composite_score = 0.40 * iso_score + 0.35 * vib_severity + 0.25 * waste_severity
+            composite_score = 0.35 * iso_score + 0.40 * vib_severity + 0.25 * waste_severity
+            if vib_severity >= 1.0 or float(r.vib_rms) >= iso_limit:
+                composite_score = max(composite_score, 0.82 + 0.15 * min(1.0, (float(r.vib_rms) - iso_limit) / 2.5))
             anomaly_score = round(float(np.clip(composite_score, 0.0, 1.0)), 3)
 
             # Status classification: Healthy (< 0.65), Warning (0.65–0.80), Critical (> 0.80)

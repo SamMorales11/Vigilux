@@ -2,7 +2,6 @@
 import { computed } from 'vue';
 import { useTelemetryStore } from '@/stores/useTelemetryStore';
 import {
-  Activity,
   Pause,
   Play,
 } from 'lucide-vue-next';
@@ -27,11 +26,13 @@ function fmtCurrency(val: number): string {
 
 <template>
   <header class="h-14 px-5 border-b border-surface-border bg-deep-slate/95 backdrop-blur-md sticky top-0 z-50 flex items-center justify-between select-none whitespace-nowrap">
-    <!-- Zona Kiri: Brand Ringkas (Tanpa Badge LIVE IIOT yang redundan) -->
-    <div class="flex items-center gap-2.5 shrink-0">
-      <div class="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-        <Activity class="w-4 h-4 animate-pulse" />
-      </div>
+    <!-- Zona Kiri: Brand Ringkas dengan Logo Icon -->
+    <div class="flex items-center gap-3 shrink-0">
+      <img
+        src="/logo-icon.jpg"
+        alt="Vigilux Logo"
+        class="h-9 w-9 rounded-lg object-cover border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.2)] shrink-0"
+      />
       <span class="font-extrabold text-sm tracking-wider text-white font-mono uppercase">
         VIGILUX // CBM COMMAND
       </span>

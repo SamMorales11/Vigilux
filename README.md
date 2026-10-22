@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./docs/assets/logo-banner.jpg" alt="VIGILUX Industrial Watchdog Banner" width="100%" style="max-width: 960px; border-radius: 12px;" />
+</p>
+
 # 🛡️ VIGILUX — Industrial Energy & Asset Anomaly Watchdog
 > **Condition-Based Monitoring (CBM) & Real-Time Energy Gap Intelligence Platform**
 
@@ -28,9 +32,6 @@ When industrial bearings undergo progressive mechanical degradation (inner race 
 - Calculates the instantaneous **Energy Waste Gap ($\Delta kW$)** between actual power consumption and an ML-predicted baseline.
 - Flags nascent sub-surface mechanical degradation **weeks before thermal or vibrational alarms trigger**.
 - Broadcasts actionable telemetry and financial diagnostics to command center engineers in **< 150 ms end-to-end latency**.
-
----
-
 
 ---
 
