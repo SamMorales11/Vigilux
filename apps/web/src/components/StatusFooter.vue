@@ -154,11 +154,11 @@ function exportCsv() {
         @click="store.togglePauseStream()"
         type="button"
         class="hover:text-cyan-300 transition-colors flex items-center gap-1.5 px-2 py-0.5 rounded hover:bg-slate-800/60"
-        :class="store.isStreamPaused ? 'text-amber-400 font-bold' : 'text-slate-400'"
+        :class="store.isStreamPaused || store.isHoverPaused ? 'text-amber-400 font-bold' : 'text-slate-400'"
         title="Press Spacebar to pause or resume real-time stream"
       >
         <kbd class="px-1 py-0.2 bg-slate-800 border border-slate-700 rounded text-[9px] text-slate-300 font-mono">SPACE</kbd>
-        <span>{{ store.isStreamPaused ? 'RESUME STREAM' : 'PAUSE STREAM' }}</span>
+        <span>{{ store.isStreamPaused || store.isHoverPaused ? 'RESUME STREAM' : 'PAUSE STREAM' }}</span>
       </button>
 
       <span class="text-slate-700">|</span>

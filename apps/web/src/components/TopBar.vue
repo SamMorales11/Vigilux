@@ -87,14 +87,14 @@ function fmtCurrency(val: number): string {
         type="button"
         class="px-3 py-1 rounded-md text-xs font-semibold font-mono tracking-wide flex items-center gap-1.5 border transition-all duration-200"
         :class="
-          store.isStreamPaused
+          store.isStreamPaused || store.isHoverPaused
             ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
             : 'bg-surface-muted text-slate-300 border-surface-border hover:border-slate-600 hover:text-white'
         "
-        :title="store.isStreamPaused ? 'Resume live chart stream' : 'Pause stream for chart inspection'"
+        :title="store.isStreamPaused || store.isHoverPaused ? 'Resume live chart stream' : 'Pause stream for chart inspection'"
       >
-        <component :is="store.isStreamPaused ? Play : Pause" class="w-3.5 h-3.5" />
-        <span>{{ store.isStreamPaused ? 'RESUME' : 'PAUSE' }}</span>
+        <component :is="store.isStreamPaused || store.isHoverPaused ? Play : Pause" class="w-3.5 h-3.5" />
+        <span>{{ store.isStreamPaused || store.isHoverPaused ? 'RESUME' : 'PAUSE' }}</span>
       </button>
 
       <!-- Tombol Ringkas ⚡ SIMULATE FAULT / 🔥 FAULT: MOTOR-03 [STOP] -->

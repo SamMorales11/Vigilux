@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { useTelemetryStore } from '@/stores/useTelemetryStore';
 import { graphic } from 'echarts';
 import {
@@ -12,16 +12,14 @@ import {
 
 const store = useTelemetryStore();
 
-const isHoverPaused = ref(false);
-
-function handleMouseEnter() {
-  isHoverPaused.value = true;
-  store.setStreamPaused(true);
+function handleCanvasMouseEnter() {
+  if (history.value.length > 0) {
+    store.setHoverPaused(true);
+  }
 }
 
-function handleMouseLeave() {
-  isHoverPaused.value = false;
-  store.setStreamPaused(false);
+function handleCanvasMouseLeave() {
+  store.setHoverPaused(false);
 }
 
 const currentAsset = computed(() => store.selectedAsset);
@@ -335,8 +333,6 @@ const chartOption = computed(() => {
 <template>
   <div
     class="relative flex flex-col h-full bg-surface/50 border border-surface-border rounded-2xl p-4 overflow-hidden select-none"
-    @mouseenter="handleMouseEnter"
-    @mouseleave="handleMouseLeave"
   >
     <!-- Chart Header -->
     <div class="flex items-center justify-between pb-2 mb-2 border-b border-surface-border">
@@ -359,28 +355,35 @@ const chartOption = computed(() => {
         </div>
       </div>
 
-      <!-- Live Hover Status Indicator -->
+      <!-- Live Hover Status Indicator (Interactive toggle on click) -->
       <div class="flex items-center gap-2">
-        <span
-          class="text-[11px] font-mono px-2.5 py-1 rounded-md border flex items-center gap-1.5 transition-all"
+        <button
+          @click="store.togglePauseStream()"
+          type="button"
+          class="text-[11px] font-mono px-2.5 py-1 rounded-md border flex items-center gap-1.5 transition-all cursor-pointer"
           :class="
-            isHoverPaused || store.isStreamPaused
+            store.isHoverPaused || store.isStreamPaused
               ? 'bg-amber-500/10 text-amber-300 border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.15)]'
               : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.1)]'
           "
+          :title="store.isHoverPaused || store.isStreamPaused ? 'Click to resume live stream' : 'Click to pause stream'"
         >
           <component
-            :is="isHoverPaused || store.isStreamPaused ? PauseCircle : PlayCircle"
+            :is="store.isHoverPaused || store.isStreamPaused ? PauseCircle : PlayCircle"
             class="w-3.5 h-3.5"
-            :class="isHoverPaused || store.isStreamPaused ? 'text-amber-400' : 'text-emerald-400'"
+            :class="store.isHoverPaused || store.isStreamPaused ? 'text-amber-400' : 'text-emerald-400'"
           />
-          <span>{{ isHoverPaused ? 'HOVER PAUSED' : store.isStreamPaused ? 'PAUSED' : 'LIVE 1 Hz' }}</span>
-        </span>
+          <span>{{ store.isHoverPaused ? 'HOVER PAUSED' : store.isStreamPaused ? 'PAUSED' : 'LIVE 1 Hz' }}</span>
+        </button>
       </div>
     </div>
 
-    <!-- ECharts Synchronized Dual-Grid Canvas -->
-    <div class="flex-1 w-full min-h-[360px] relative">
+    <!-- ECharts Synchronized Dual-Grid Canvas (Hover freeze isolated to chart canvas only) -->
+    <div
+      class="flex-1 w-full min-h-[360px] relative"
+      @mouseenter="handleCanvasMouseEnter"
+      @mouseleave="handleCanvasMouseLeave"
+    >
       <v-chart
         class="w-full h-full"
         :option="chartOption"
