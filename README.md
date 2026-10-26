@@ -19,7 +19,7 @@
 
 ## 1. Executive Summary & Industrial Business Problem
 
-In heavy manufacturing and continuous process industries (mining, petrochemical, automotive stamping, power generation), rotating machinery such as high-capacity induction motors, multistage centrifugal pumps, and screw compressors represent critical single points of failure.
+In heavy manufacturing and continuous process industries (mining, petrochemical, automotive stamping, power generation), rotating machinery such as high capacity induction motors, multistage centrifugal pumps, and screw compressors represent critical single points of failure.
 
 ### The Hidden OPEX Drain: Mechanical Friction vs. Electrical Penalty
 When industrial bearings undergo progressive mechanical degradation (inner race pitting, lubrication dry-out, roller wear):
@@ -28,10 +28,10 @@ When industrial bearings undergo progressive mechanical degradation (inner race 
 3. **Catastrophic Failure & Unplanned Downtime**: If uncorrected, mechanical friction converts electrical power directly into destructive thermal energy (+15°C to +30°C thermal spikes) and destructive vibrational resonance (> 7.0 mm/s RMS), leading to catastrophic bearing seizure and emergency plant stoppage costing up to **$250,000 / hour** in lost production.
 
 ### The Vigilux Solution
-**Vigilux** is a high-throughput, edge-to-cloud Condition-Based Monitoring (CBM) and Energy Waste Intelligence platform. By synthesizing continuous 1 Hz high-frequency multi-sensor streams with real-time Dual Machine Learning inference (`LightGBM` + `IsolationForest`), Vigilux:
-- Calculates the instantaneous **Energy Waste Gap ($\Delta kW$)** between actual power consumption and an ML-predicted baseline.
-- Flags nascent sub-surface mechanical degradation **weeks before thermal or vibrational alarms trigger**.
-- Broadcasts actionable telemetry and financial diagnostics to command center engineers in **< 150 ms end-to-end latency**.
+**Vigilux** is a high throughput, edge-to-cloud Condition Based Monitoring (CBM) and Energy Waste Intelligence platform. By synthesizing continuous 1 Hz high-frequency multi-sensor streams with real time Dual Machine Learning inference (`LightGBM` + `IsolationForest`), Vigilux:
+- Calculates the instantaneous **Energy Waste Gap ($\Delta kW$)** between actual power consumption and an ML predicted baseline.
+- Flags nascent sub surface mechanical degradation **weeks before thermal or vibrational alarms trigger**.
+- Broadcasts actionable telemetry and financial diagnostics to command center engineers in **< 150 ms end to end latency**.
 
 ---
 
