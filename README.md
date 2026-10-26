@@ -3,7 +3,7 @@
 </p>
 
 # 🛡️ VIGILUX — Industrial Energy & Asset Anomaly Watchdog
-> **Condition-Based Monitoring (CBM) & Real-Time Energy Gap Intelligence Platform**
+> **Condition Based Monitoring (CBM) & Real Time Energy Gap Intelligence Platform**
 
 [![Node.js](https://img.shields.io/badge/Node.js-v22+-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-v5.7+-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
